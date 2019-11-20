@@ -3,7 +3,7 @@ importPackage(org.json);
 const scriptName="PartyManager.js";
 
 const KakaoNameSplitCharacters = ['/', ' '];
-const GameTypes = [["자랭", 5], ["내전", 10]];
+const GameTypes = [["일반", 5], ["칼바람", 5], ["자랭", 5], ["내전", 10]];
 const AlarmTime = [16, 19];
 
 var isInitialized = false;
@@ -35,155 +35,187 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     if (isInitialized == false)
         Initialize();
 
-    var split = msg.split(' ');
-    if (split[0].startsWith('/') == false)
+    try
     {
-        RegisterNotice(replier);
-        return;
-    }
-
-    ClearEndedParty();
-
-    var command = split[0];
-    var msg = "";
-    if (command == "/사용법")
-    {
-        msg += "시간 양식 : 0000 ~ 2359\n";
-        msg += "사용 가능 명령어\n";
-        msg += "/파티리스트\n";
-        msg += "/파티생성 파티이름 시간\n";
-        msg += "/파티참가 파티이름\n";
-        msg += "/파티탈퇴 파티이름\n";
-        msg += "/파티시간변경 파티이름 시간\n";
-        msg += "/파티강퇴 파티이름 강퇴할닉네임\n";
-    }
-    else if (command == "/파티생성")
-    {
-        var partyName = split[1];
-        if (!IsValidGameType(partyName))
+        var split = msg.split(' ');
+        if (split[0].startsWith('/') == false)
         {
-            msg = "Error! 파티는 자랭이나 내전만 생성 할 수 있어요!";
+            RegisterNotice(replier);
+            return;
         }
-        else
+
+        ClearEndedParty();
+
+        var command = split[0];
+        var msg = "";
+        if (command == "/사용법")
         {
-            var cur = new Date();
-            var time = ConvertCustomTimeToDate(split[2]);
-            if (cur > time)
+            msg += "시간 양식 : 0000 ~ 2359\n";
+            msg += "사용 가능 명령어\n";
+            msg += "/파티리스트\n";
+            msg += "/파티생성 파티이름 시간\n";
+            msg += "/파티참가 파티이름\n";
+            msg += "/파티탈퇴 파티이름\n";
+            msg += "/파티시간변경 파티이름 시간\n";
+            msg += "/파티강퇴 파티이름 파티원번호\n";
+        }
+        else if (command == "/파티생성")
+        {
+            var partyName = split[1];
+            if (!IsValidGameType(partyName))
             {
-                msg = "Error! 미래 시간을 입력해주세요.";
+                msg = "Error! 파티는 ";
+                GameTypes.forEach(elem => {
+                    msg += elem[0];
+                    msg += ", ";
+                });
+                msg.substring(0, msg.length - 2);
+                msg += "만 생성 할 수 있어요!";
             }
             else
             {
-                var party = CreateParty(partyName, time);
-                if (party)
+                var cur = new Date();
+                var isValidTime = CheckCustomTimeFormat(split[2]);
+                if (isValidTime)
                 {
-                    parties.push(party);
-                    msg = ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
+                    var time = ConvertCustomTimeToDate(split[2]);
+                    if (cur > time)
+                    {
+                        msg = "Error! 미래 시간을 입력해주세요.";
+                    }
+                    else
+                    {
+                        var party = CreateParty(partyName, time);
+                        if (party)
+                        {
+                            parties.push(party);
+                            msg = ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
+                        }
+                        else
+                        {
+                            msg = "Error! [" + partyName + "]는 이미 존재하는 파티에요!";
+                        }
+                    }
                 }
                 else
                 {
-                    msg = "Error! [" + partyName + "]는 이미 존재하는 파티에요!";
+                    msg = "Error! 시간 양식을 확인해주세요.";
                 }
             }
         }
-    }
-    else if (command == "/파티참가")
-    {
-        var partyName = split[1];
-        var party = FindPartyByName(partyName);
-        if (party)
+        else if (command == "/파티참가")
         {
-            msg = ConvertPartyToMsg(party);
-
-            var errorMsg = JoinParty(party, sender);
-            if (!errorMsg)
+            var partyName = split[1];
+            var party = FindPartyByName(partyName);
+            if (party)
             {
-                msg += "\n\n" + GetNameFromKakaoName(sender) + "님이 [" + partyName + "]에 참가하였습니다!";
+                var errorMsg = JoinParty(party, sender);
+                msg = ConvertPartyToMsg(party);
+                if (!errorMsg)
+                {
+                    msg += "\n\n" + GetNameFromKakaoName(sender) + "님이 [" + partyName + "]에 참가하였습니다!";
+                }
+                else
+                {
+                    msg += "\n\n" + errorMsg;
+                }
             }
             else
             {
-                msg += "\n\n" + errorMsg;
+                msg = "Error! [" + partyName + "]는 존재하지 않아요!";
             }
         }
-        else
+        else if (command == "/파티리스트")
         {
-            msg = "Error! [" + partyName + "]는 존재하지 않아요!";
+            msg = GetPartyListMsg();
         }
-    }
-    else if (command == "/파티리스트")
-    {
-        msg = GetPartyListMsg();
-    }
-    else if (command == "/파티탈퇴")
-    {
-        var partyName = split[1];
-        var party = FindPartyByName(partyName);
-        if (party)
+        else if (command == "/파티탈퇴")
         {
-            var errorMsg = LeaveParty(party, sender);
-            if (!errorMsg)
+            var partyName = split[1];
+            var party = FindPartyByName(partyName);
+            if (party)
             {
-                msg = GetNameFromKakaoName(sender) + "님이 [" + partyName + "]를 떠나셨어요.";
+                var errorMsg = LeaveParty(party, sender);
+                if (!errorMsg)
+                {
+                    msg = GetNameFromKakaoName(sender) + "님이 [" + partyName + "]를 떠나셨어요.";
+                }
+                else
+                {
+                    msg = "Erorr! " + errorMsg;
+                }
             }
             else
             {
-                msg = "Erorr! " + errorMsg;
+                msg = "Error! [" + partyName + "]는 존재하지 않아요!";
             }
         }
-        else
+        else if (command == "/파티시간변경")
         {
-            msg = "Error! [" + partyName + "]는 존재하지 않아요!";
-        }
-    }
-    else if (command == "/파티시간변경")
-    {
-        var partyName = split[1];
-        var party = FindPartyByName(partyName);
-        var errorMsg = ModifyPartyTime(party, ConvertCustomTimeToDate(split[2]));
-        if (!errorMsg)
-        {
-            msg = "[" + partyName + "] 파티 시간이 변경되었습니다.";
-        }
-        else
-        {
-            msg = "Error! " + errorMsg;
-        }
-    }
-    else if (command == "/파티강퇴")
-    {
-        var partyName = split[1];
-        var purgeeName = split[2];
-        var party = FindPartyByName(partyName);
-        if (party)
-        {
-            var errorMsg = LeaveParty(party, purgeeName);
-            if (!errorMsg)
+            var partyName = split[1];
+            var party = FindPartyByName(partyName);
+            var isValidTime = CheckCustomTimeFormat(split[2]);
+            if (isValidTime)
             {
-                msg = purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
+                var errorMsg = ModifyPartyTime(party, ConvertCustomTimeToDate(split[2]));
+                if (!errorMsg)
+                    msg = "[" + partyName + "] 파티 시간이 변경되었습니다.";
+                else
+                    msg = "Error! " + errorMsg;
             }
             else
             {
-                msg = "Erorr! " + errorMsg;
+                msg = "Error! 시간 양식을 확인해주세요.";
             }
         }
-        else
+        else if (command == "/파티강퇴")
         {
-            msg = "Error! [" + partyName + "]는 존재하지 않아요!";
+            var partyName = split[1];
+            var purgeeNumber = split[2];
+            var party = FindPartyByName(partyName);
+            if (party)
+            {
+                var purgeeName = "";
+                if (purgeeNumber <= party["members"].length)
+                    purgeeName = party["members"][purgeeNumber - 1];
+                
+                var errorMsg = KickParty(party, purgeeNumber);
+                if (!errorMsg)
+                {
+                    msg = purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
+                }
+                else
+                {
+                    msg = "Erorr! " + errorMsg;
+                }
+            }
+            else
+            {
+                msg = "Error! [" + partyName + "]는 존재하지 않아요!";
+            }
         }
-    }
-    else if (command == "/파티알림켜기")
-    {
-        shouldNotice = true;
-    }
-    else if (command == "/파티알림끄기")
-    {
-        shouldNotice = false;
-    }
+        else if (command == "/파티알림켜기")
+        {
+            shouldNotice = true;
+        }
+        else if (command == "/파티알림끄기")
+        {
+            shouldNotice = false;
+        }
+        else if (command.includes == "하이")
+        {
+            msg = GetNameFromKakaoName(sender) + "님 하이요!!";
+        }
 
-    if (msg.length > 0)
-        replier.reply(msg);
+        if (msg.length > 0)
+            replier.reply(msg);
 
-    DataBase.setDataBase("parties", JSON.stringify(parties));
+        DataBase.setDataBase("parties", JSON.stringify(parties));
+    }
+    catch (error)
+    {
+        replier.reply("Unknown Error!");
+    }
 }
 
 function Initialize()
@@ -227,9 +259,12 @@ function NoticePartyList(targetDate, replier)
 
     ClearEndedParty();
 
-    var noticeMsg = GetPartyListMsg();
-    if (noticeMsg != "")
-        replier.reply(noticeMsg);
+    if (parties.length == 0)
+        return;
+
+    var noticeMsg = "☆★ 오늘의 파티 ★☆\n";
+    noticeMsg += GetPartyListMsg();
+    replier.reply(noticeMsg);
 }
 
 function GetNameFromKakaoName(kakaoName)
@@ -283,6 +318,11 @@ function ModifyPartyTime(party, time)
     party["time"] = time;
 }
 
+function CheckCustomTimeFormat(customIime)
+{
+    return customIime.match(/[0-9][0-9][0-9][0-9]/);
+}
+
 function ConvertCustomTimeToDate(time)
 {
     var date = new Date();
@@ -324,6 +364,14 @@ function LeaveParty(party, userName)
         return "[" + party["name"] + "]에 " + GetNameFromKakaoName(userName) + "는 참가 중이지 않아요.";
 
     party["members"].splice(idx, 1);
+}
+
+function KickParty(party, number)
+{
+    if (number > party["members"].length)
+        return "Error! 없는 번호에요.";
+
+    party["members"].splice(number - 1, 1);
 }
 
 function ClearEndedParty()
