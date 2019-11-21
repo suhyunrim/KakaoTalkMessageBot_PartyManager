@@ -172,26 +172,33 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         {
             var partyName = split[1];
             var purgeeNumber = split[2];
-            var party = FindPartyByName(partyName);
-            if (party)
+            if (purgeeNumber.match(/[0-9]/))
             {
-                var purgeeName = "";
-                if (purgeeNumber <= party["members"].length)
-                    purgeeName = party["members"][purgeeNumber - 1];
-                
-                var errorMsg = KickParty(party, purgeeNumber);
-                if (!errorMsg)
+                var party = FindPartyByName(partyName);
+                if (party)
                 {
-                    msg = purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
+                    var purgeeName = "";
+                    if (purgeeNumber <= party["members"].length)
+                        purgeeName = party["members"][purgeeNumber - 1];
+                    
+                    var errorMsg = KickParty(party, purgeeNumber);
+                    if (!errorMsg)
+                    {
+                        msg = purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
+                    }
+                    else
+                    {
+                        msg = "Erorr! " + errorMsg;
+                    }
                 }
                 else
                 {
-                    msg = "Erorr! " + errorMsg;
+                    msg = "Error! [" + partyName + "]는 존재하지 않아요!";
                 }
             }
             else
             {
-                msg = "Error! [" + partyName + "]는 존재하지 않아요!";
+                msg = "Error! 강퇴할 번호를 입력해주세요.";
             }
         }
         else if (command == "/파티알림켜기")
