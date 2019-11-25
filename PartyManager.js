@@ -31,6 +31,69 @@ if (this.JSON && !this.JSON.dateParser)
     };
 }
 
+DataBase = { setDataBase : function () {}, getDataBase : function () {} }
+
+function Replier() {}
+Replier.prototype.reply = function(msg) { print(msg); };
+
+// CommandBase Class
+function CommandBase()
+{
+    this.isSucceed = false;
+}
+
+CommandBase.prototype.Execute = function()
+{
+    throw new Error("Execute is abstract method.");
+}
+
+//CreateParty Class
+function CreatePartyCommand(partyName, customTime)
+{
+    CommandBase.call(this);
+
+    this.partyName = partyName;
+    this.customTime = customTime;
+}
+
+CreatePartyCommand.prototype = Object.create(CommandBase.prototype);
+CreatePartyCommand.prototype.constructor = CreatePartyCommand;
+CreatePartyCommand.prototype.Execute = function()
+{
+    var partyName = this.partyName;
+
+    var msg = "";
+    if (!IsValidGameType(partyName))
+    {
+        msg = "파티는 ";
+        GameTypes.forEach(elem => {
+            msg += elem[0];
+            msg += ", ";
+        });
+        msg.substring(0, msg.length - 2);
+        msg += "만 생성 할 수 있어요!";
+        return msg;
+    }
+
+    var cur = new Date();
+    var isValidTime = CheckCustomTimeFormat(this.customTime);
+    if (!isValidTime)
+        return "시간 양식을 확인해주세요.";
+
+    var time = ConvertCustomTimeToDate(this.customTime);
+    if (cur > time)
+        return "미래 시간을 입력해주세요.";
+
+    var party = CreateParty(partyName, time);
+    if (!party)
+        return "[" + partyName + "]는 이미 존재하는 파티에요!";
+
+    parties.push(party);
+    this.isSucceed = true;
+
+    return ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
+}
+
 function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
     if (isInitialized == false)
         Initialize();
@@ -61,47 +124,12 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         }
         else if (command == "/파티생성")
         {
-            var partyName = split[1];
-            if (!IsValidGameType(partyName))
-            {
-                msg = "Error! 파티는 ";
-                GameTypes.forEach(elem => {
-                    msg += elem[0];
-                    msg += ", ";
-                });
-                msg.substring(0, msg.length - 2);
-                msg += "만 생성 할 수 있어요!";
-            }
-            else
-            {
-                var cur = new Date();
-                var isValidTime = CheckCustomTimeFormat(split[2]);
-                if (isValidTime)
-                {
-                    var time = ConvertCustomTimeToDate(split[2]);
-                    if (cur > time)
-                    {
-                        msg = "Error! 미래 시간을 입력해주세요.";
-                    }
-                    else
-                    {
-                        var party = CreateParty(partyName, time);
-                        if (party)
-                        {
-                            parties.push(party);
-                            msg = ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
-                        }
-                        else
-                        {
-                            msg = "Error! [" + partyName + "]는 이미 존재하는 파티에요!";
-                        }
-                    }
-                }
-                else
-                {
-                    msg = "Error! 시간 양식을 확인해주세요.";
-                }
-            }
+            var commandClass = new CreatePartyCommand(split[1], split[2]);
+            var resultMsg = commandClass.Execute();
+            if (!commandClass.isSucceed)
+                msg += "Error! ";
+
+            msg += resultMsg;
         }
         else if (command == "/파티참가")
         {
@@ -221,7 +249,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     }
     catch (error)
     {
-        replier.reply("Unknown Error!");
+        replier.reply("Unknown Error - " + error);
     }
 }
 
@@ -440,3 +468,5 @@ function onCreate(savedInstanceState,activity) {
 function onResume(activity) {}
 function onPause(activity) {}
 function onStop(activity) {}
+
+//response("room", "/파티생성 자랭1 2100", "sender", false, new Replier(), null, null, null);
