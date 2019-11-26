@@ -11,5 +11,12 @@ if (!this["DataBase"])
     Replier.prototype.reply = function(msg) { print(msg); };
 }
 
-response("room", "/파티생성 자랭1 2100", "sender", false, new Replier(), null, null, null);
-response("room", "/파티참가 자랭1", "sender", false, new Replier(), null, null, null);
+response("room", "/사용법", "sender1", false, new Replier(), null, null, null);
+response("room", "/파티생성 자랭1 2100", "sender1", false, new Replier(), null, null, null);
+response("room", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room", "/파티탈퇴 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room", "/파티참가 자랭1", "sender2", false, new Replier(), null, null, null);
+response("room", "/파티강퇴 자랭1 1", "sender2", false, new Replier(), null, null, null);
+response("room", "/파티시간변경 자랭1 2200", "sender2", false, new Replier(), null, null, null);
+response("room", "/파티리스트", "sender2", false, new Replier(), null, null, null);
