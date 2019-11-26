@@ -34,21 +34,12 @@ if (this.JSON && !this.JSON.dateParser)
 function ApplyAndNew(constructor, args)
 {
     function partial () {
-       return constructor.apply(this, args);
+        return constructor.apply(this, args);
     };
     if (typeof constructor.prototype === "object") {
-       partial.prototype = Object.create(constructor.prototype);
+        partial.prototype = Object.create(constructor.prototype);
     }
     return partial;
- }
-
- // 윈도우에서 테스트 하기 위한 임시 코드들
-if (!this["DataBase"])
-{
-    DataBase = { setDataBase : function () {}, getDataBase : function () {} }
-
-    function Replier() {}
-    Replier.prototype.reply = function(msg) { print(msg); };
 }
 
 // CommandBase Class
@@ -57,6 +48,7 @@ function CommandBase()
     this.isSucceed = false;
 }
 
+CommandBase.prototype.isRequireSender = true;
 CommandBase.prototype.Execute = function()
 {
     throw new Error("Execute is abstract method.");
@@ -110,16 +102,16 @@ CreatePartyCommand.prototype.Execute = function()
 }
 
 // JoinPartyCommand Class
-function JoinPartyCommand(partyName, sender)
+function JoinPartyCommand(partyName)
 {
     CommandBase.call(this);
 
     this.partyName = partyName;
-    this.sender = sender;
 }
 
 JoinPartyCommand.prototype = Object.create(CommandBase.prototype);
 JoinPartyCommand.prototype.constructor = JoinPartyCommand;
+JoinPartyCommand.prototype.isRequireSender = true;
 JoinPartyCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
@@ -150,16 +142,16 @@ PartyListCommand.prototype.Execute = function()
 }
 
 // WithdrawPartyCommand Class
-function WithdrawPartyCommand(partyName, sender)
+function WithdrawPartyCommand(partyName)
 {
     CommandBase.call(this);
 
     this.partyName = partyName;
-    this.sender = sender;
 }
 
 WithdrawPartyCommand.prototype = Object.create(CommandBase.prototype);
 WithdrawPartyCommand.prototype.constructor = WithdrawPartyCommand;
+WithdrawPartyCommand.prototype.isRequireSender = true;
 WithdrawPartyCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
@@ -269,27 +261,24 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
             {
                 var constructorWithArguments = ApplyAndNew(command, split);
                 commandClass = new constructorWithArguments();
+                if (commandClass.isRequireSender)
+                    commandClass.sender = sender;
                 break;
             }
         }
 
-        var msg = "";
+        if (!commandClass)
+            return;
 
-        if (commandClass)
-        {
-            var responseMsg = commandClass.Execute();
-            if (!commandClass.isSucceed)
-                msg += "Error! ";
-    
-            msg += responseMsg;
-        }
-        else
-        {
-            msg = "Error! 없는 명령어에요.";
-        }
+        var responseMsg = "";
+        var commandMsg = commandClass.Execute();
+        if (!commandClass.isSucceed)
+            responseMsg += "Error! ";
 
-        if (msg.length > 0)
-            replier.reply(msg);
+        responseMsg += commandMsg;
+
+        if (responseMsg.length > 0)
+            replier.reply(responseMsg);
 
         DataBase.setDataBase("parties", JSON.stringify(parties));
     }
@@ -354,7 +343,6 @@ function GetNameFromKakaoName(kakaoName)
     {
         var splitChar = KakaoNameSplitCharacters[i];
         var split = kakaoName.split(splitChar);
-        Log.info("splitChar: " + splitChar + "  split: " + split.length);
         if (split.length > 1)
             return split[0];
     }
@@ -514,5 +502,3 @@ function onCreate(savedInstanceState,activity) {
 function onResume(activity) {}
 function onPause(activity) {}
 function onStop(activity) {}
-
-//response("room", "/파티참가 자랭1", "sender", false, new Replier(), null, null, null);
