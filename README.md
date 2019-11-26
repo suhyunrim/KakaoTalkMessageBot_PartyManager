@@ -1,5 +1,10 @@
 # KakaoTalkMessageBot_PartyManager
   
+# 메신저봇 앱에서 사용하는 파티 관리 매니저
+# https://play.google.com/store/apps/details?id=com.xfl.kakaotalkbot&hl=ko
+  
+***
+  
 메신저 앱에서 사용하는 파일 : PartyManager.js  
 윈도우에서 테스트하기 위한 파일 : TestCases.js  
   
