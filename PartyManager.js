@@ -2,15 +2,22 @@ importPackage(org.json);
 
 const scriptName="PartyManager.js";
 
+// KakaoNameSplitCharacters의 문자로 split 함.
+// ex1. ZeroBoom/28/성남 -> ZeroBoom으로 파싱
+// ex2. ZeroBoom 28 성남 -> ZeroBoom으로 파싱
 const KakaoNameSplitCharacters = ['/', ' '];
+
+// GameTypes에 있는 것들만 파티 생성 가능. 숫자는 전체 인원.
 const GameTypes = [["일반", 5], ["칼바람", 5], ["자랭", 5], ["내전", 10]];
+
+// 매일 AlarmTime에 들어있는 값의 정시에 알람. (파티가 있을 경우)
 const AlarmTime = [16, 19];
 
 var isInitialized = false;
-var shouldNotice = true;
 var parties = [];
 var noticedDay = 0;
 
+// js JSON에서 serialize 후 deserialize 과정에서 date는 string으로 취급되어 제대로 파싱되지 않아서 넣은 코드.
 if (this.JSON && !this.JSON.dateParser)
 {
     var reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
@@ -31,6 +38,7 @@ if (this.JSON && !this.JSON.dateParser)
     };
 }
 
+// Class를 범용성 있게 사용하기 위한 함수.
 function ApplyAndNew(constructor, args)
 {
     function partial () {
@@ -325,7 +333,7 @@ function Initialize()
 
 function RegisterNotice(replier)
 {
-    if (!shouldNotice || parties.length == 0)
+    if (parties.length == 0)
         return;
 
     var date = new Date();
