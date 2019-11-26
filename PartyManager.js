@@ -54,6 +54,26 @@ CommandBase.prototype.Execute = function()
     throw new Error("Execute is abstract method.");
 }
 
+// HelpCommand Class
+function HelpCommand()
+{
+    CommandBase.call(this);
+    this.isSucceed = true;
+}
+
+HelpCommand.prototype = Object.create(CommandBase.prototype);
+HelpCommand.prototype.constructor = HelpCommand;
+HelpCommand.prototype.Execute = function()
+{
+    var msg = "시간 양식 : 0000 ~ 2359\n";
+    msg += "사용 가능 명령어\n";
+
+    for (var key in CommandList)
+        msg += key + "\n";
+
+    return msg;
+}
+
 //CreateParty Class
 function CreatePartyCommand(partyName, customTime)
 {
@@ -163,6 +183,7 @@ WithdrawPartyCommand.prototype.Execute = function()
     if (errorMsg)
         return errorMsg;
 
+    this.isSucceed = true;
     return GetNameFromKakaoName(this.sender) + "님이 [" + partyName + "]를 떠나셨어요.";
 }
 
@@ -189,6 +210,7 @@ ModifyPartyTimeCommand.prototype.Execute = function()
     if (errorMsg)
         return errorMsg;
     
+    this.isSucceed = true;
     return "[" + partyName + "] 파티 시간이 변경되었습니다.";
 }
 
@@ -222,11 +244,13 @@ KickMemberCommand.prototype.Execute = function()
     if (errorMsg)
         return errorMsg;
     
+    this.isSucceed = true;
     return purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
 }
 
 var CommandList =
 {
+    "/사용법" : HelpCommand,
     "/파티리스트" : PartyListCommand,
     "/파티생성 파티이름 시간" : CreatePartyCommand,
     "/파티참가 파티이름" : JoinPartyCommand,
