@@ -8,14 +8,13 @@ const scriptName="PartyManager.js";
 const KakaoNameSplitCharacters = ['/', ' '];
 
 // GameTypes에 있는 것들만 파티 생성 가능. 숫자는 전체 인원.
-const GameTypes = [["일반", 5], ["칼바람", 5], ["자랭", 5], ["내전", 10]];
+const GameTypes = [["일반", 5], ["칼바람", 5], ["자랭", 5], ["내전", 10], ["스크림", 5]];
 
 // 매일 AlarmTime에 들어있는 값의 정시에 알람. (파티가 있을 경우)
 const AlarmTime = [16, 19];
 
 var isInitialized = false;
-var parties = [];
-var noticedDay = 0;
+var rooms = [];
 
 // js JSON에서 serialize 후 deserialize 과정에서 date는 string으로 취급되어 제대로 파싱되지 않아서 넣은 코드.
 if (this.JSON && !this.JSON.dateParser)
@@ -50,16 +49,105 @@ function ApplyAndNew(constructor, args)
     return partial;
 }
 
+// Room Class
+function Room()
+{
+    this.parties = [];
+    this.noticedDay = 0;
+}
+
+Room.prototype.FindPartyByName = function(name)
+{
+    return this.parties.find(function(elem) {
+        return elem["name"] == name;
+    });
+}
+
+Room.prototype.AddParty = function(party)
+{
+    this.parties.push(party);
+}
+
+Room.prototype.GetPartyListMsg = function()
+{
+    var msg = "";
+    if (this.parties.length > 0)
+    {
+        for (var i = 0; i < this.parties.length; i++)
+            msg += ConvertPartyToMsg(this.parties[i]) + "\n\n";
+    }
+    else
+    {
+        msg = "만들어진 파티가 없어요 ㅠ_ㅠ";
+    }
+
+    return msg;
+}
+
+Room.prototype.ClearEndedParty = function()
+{
+    var current = new Date();
+    for (var i = this.parties.length - 1; i >= 0; i--)
+    {
+        var party = this.parties[i];
+        if (current > party["time"])
+            this.parties.splice(i, 1);
+    }
+}
+
+Room.prototype.RegisterNotice = function(replier)
+{
+    if (this.parties.length == 0)
+        return;
+
+    var date = new Date();
+    if (this.noticedDay == date.getDate())
+        return;
+
+    this.noticedDay = date.getDate();
+
+    var targetDate = new Date();
+    targetDate.setMinutes(0);
+    AlarmTime.forEach(elem => {
+        targetDate.setHours(elem);
+        this.NoticePartyList(targetDate, replier);
+    });
+}
+
+Room.prototype.NoticePartyList = function(targetDate, replier)
+{
+    var now = new Date();
+    var diffTime = targetDate - now;
+    if (diffTime < 0)
+        return;
+
+    Sleep(diffTime);
+
+    this.ClearEndedParty();
+
+    if (this.parties.length == 0)
+        return;
+
+    var noticeMsg = "☆★ 오늘의 파티 ★☆\n";
+    noticeMsg += this.GetPartyListMsg();
+    replier.reply(noticeMsg);
+}
+
 // CommandBase Class
 function CommandBase()
 {
     this.isSucceed = false;
+    this.targetRoom = "";
 }
 
 CommandBase.prototype.isRequireSender = true;
 CommandBase.prototype.Execute = function()
 {
     throw new Error("Execute is abstract method.");
+}
+CommandBase.prototype.SetTargetRoom = function(targetRoom)
+{
+    this.targetRoom = targetRoom;
 }
 
 // HelpCommand Class
@@ -119,11 +207,13 @@ CreatePartyCommand.prototype.Execute = function()
     if (cur > time)
         return "미래 시간을 입력해주세요.";
 
-    var party = CreateParty(partyName, time);
-    if (!party)
+    var party = this.targetRoom.FindPartyByName(partyName);
+    if (party)
         return "[" + partyName + "]는 이미 존재하는 파티에요!";
 
-    parties.push(party);
+    party = {name:partyName, members:[], time:time};
+
+    this.targetRoom.AddParty(party);
     this.isSucceed = true;
 
     return ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
@@ -143,13 +233,22 @@ JoinPartyCommand.prototype.isRequireSender = true;
 JoinPartyCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
-    var party = FindPartyByName(partyName);
+    var party = this.targetRoom.FindPartyByName(partyName);
     if (!party)
         return "[" + partyName + "]는 존재하지 않아요!";
 
-    var errorMsg = JoinParty(party, this.sender);
-    if (errorMsg)
-        return errorMsg;
+    for (var i = 0; i < GameTypes.length; i++)
+    {
+        var typeName = GameTypes[i][0];
+        var typeLimitation = GameTypes[i][1];
+        if (partyName.includes(typeName) && party["members"].length >= typeLimitation)
+            return "인원이 꽉 찼어요!";
+    }
+    
+    if (party["members"].indexOf(this.sender) >= 0)
+        return "이미 참가 중이에요!";
+
+    party["members"].push(this.sender);
 
     this.isSucceed = true;
     return ConvertPartyToMsg(party) + "\n\n" + GetNameFromKakaoName(this.sender) + "님이 [" + partyName + "]에 참가하였습니다!";
@@ -166,7 +265,7 @@ PartyListCommand.prototype = Object.create(CommandBase.prototype);
 PartyListCommand.prototype.constructor = PartyListCommand;
 PartyListCommand.prototype.Execute = function()
 {
-    return GetPartyListMsg();
+    return this.targetRoom.GetPartyListMsg();
 }
 
 // WithdrawPartyCommand Class
@@ -183,13 +282,15 @@ WithdrawPartyCommand.prototype.isRequireSender = true;
 WithdrawPartyCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
-    var party = FindPartyByName(partyName);
+    var party = this.targetRoom.FindPartyByName(partyName);
     if (!party)
         return "[" + partyName + "]는 존재하지 않아요!";
 
-    var errorMsg = LeaveParty(party, this.sender);
-    if (errorMsg)
-        return errorMsg;
+    var idx = party["members"].indexOf(this.sender);
+    if (idx < 0)
+        return "[" + party["name"] + "]에 " + GetNameFromKakaoName(this.sender) + "는 참가 중이지 않아요.";
+
+    party["members"].splice(idx, 1);
 
     this.isSucceed = true;
     return GetNameFromKakaoName(this.sender) + "님이 [" + partyName + "]를 떠나셨어요.";
@@ -209,15 +310,18 @@ ModifyPartyTimeCommand.prototype.constructor = ModifyPartyTimeCommand;
 ModifyPartyTimeCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
-    var party = FindPartyByName(partyName);
+    var party = this.targetRoom.FindPartyByName(partyName);
     var isValidTime = CheckCustomTimeFormat(this.customTime);
     if (!isValidTime)
         return "시간 양식을 확인해주세요.";
 
-    var errorMsg = ModifyPartyTime(party, ConvertCustomTimeToDate(this.customTime));
-    if (errorMsg)
-        return errorMsg;
-    
+    var cur = new Date();
+    var time = ConvertCustomTimeToDate(this.customTime);
+    if (cur > time)
+        return "미래 시간을 입력해주세요.";
+
+    party["time"] = time;
+
     this.isSucceed = true;
     return "[" + partyName + "] 파티 시간이 변경되었습니다.";
 }
@@ -240,18 +344,19 @@ KickMemberCommand.prototype.Execute = function()
     if (!purgeeNumber.match(/[0-9]/))
         return "강퇴할 번호를 입력해주세요.";
 
-    var party = FindPartyByName(partyName);
+    var party = this.targetRoom.FindPartyByName(partyName);
     if (!party)
         return "[" + partyName + "]는 존재하지 않아요!";
+
+    if (purgeeNumber > party["members"].length)
+        return "없는 번호에요.";
 
     var purgeeName = "";
     if (purgeeNumber <= party["members"].length)
         purgeeName = party["members"][purgeeNumber - 1];
-    
-    var errorMsg = KickParty(party, purgeeNumber);
-    if (errorMsg)
-        return errorMsg;
-    
+
+    party["members"].splice(purgeeNumber - 1, 1);
+
     this.isSucceed = true;
     return purgeeName + "님이 [" + partyName + "]에서 강퇴되셨어요.";
 }
@@ -267,20 +372,27 @@ var CommandList =
     "/파티강퇴 파티이름 파티원번호" : KickMemberCommand,
 }
 
-function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
+function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
     if (isInitialized == false)
         Initialize();
 
     try
     {
         var split = msg.split(' ');
+        var room = FindRoom(roomName);
+        if (!room)
+        {
+            room = new Room();
+            rooms[roomName] = room;
+        }
+
         if (split[0].startsWith('/') == false)
         {
-            RegisterNotice(replier);
+            room.RegisterNotice(replier);
             return;
         }
 
-        ClearEndedParty();
+        room.ClearEndedParty();
 
         var commandStr = split[0];
         split.splice(0, 1);
@@ -293,6 +405,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
             {
                 var constructorWithArguments = ApplyAndNew(command, split);
                 commandClass = new constructorWithArguments();
+                commandClass.SetTargetRoom(room);
                 if (commandClass.isRequireSender)
                     commandClass.sender = sender;
                 break;
@@ -312,7 +425,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         if (responseMsg.length > 0)
             replier.reply(responseMsg);
 
-        DataBase.setDataBase("parties", JSON.stringify(parties));
+        DataBase.setDataBase("rooms", JSON.stringify(rooms));
     }
     catch (error)
     {
@@ -322,51 +435,13 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
 function Initialize()
 {
-    var partiesRaw = DataBase.getDataBase("parties");
-    if (partiesRaw && partiesRaw != "")
+    var roomsRaw = DataBase.getDataBase("rooms");
+    if (roomsRaw && roomsRaw != "")
     {
-        parties = JSON.parse(partiesRaw, JSON.dateParser);
+        rooms = JSON.parse(roomsRaw, JSON.dateParser);
     }
 
     isInitialized = true;
-}
-
-function RegisterNotice(replier)
-{
-    if (parties.length == 0)
-        return;
-
-    var date = new Date();
-    if (noticedDay == date.getDate())
-        return;
-
-    noticedDay = date.getDate();
-
-    var targetDate = new Date();
-    targetDate.setMinutes(0);
-    AlarmTime.forEach(elem => {
-        targetDate.setHours(elem);
-        NoticePartyList(targetDate, replier);
-    });
-}
-
-function NoticePartyList(targetDate, replier)
-{
-    var now = new Date();
-    var diffTime = targetDate - now;
-    if (diffTime < 0)
-        return;
-
-    java.lang.Thread.sleep(diffTime);
-
-    ClearEndedParty();
-
-    if (parties.length == 0)
-        return;
-
-    var noticeMsg = "☆★ 오늘의 파티 ★☆\n";
-    noticeMsg += GetPartyListMsg();
-    replier.reply(noticeMsg);
 }
 
 function GetNameFromKakaoName(kakaoName)
@@ -382,22 +457,6 @@ function GetNameFromKakaoName(kakaoName)
     return kakaoName;
 }
 
-function GetPartyListMsg()
-{
-    var msg = "";
-    if (parties.length > 0)
-    {
-        for (var i = 0; i < parties.length; i++)
-            msg += ConvertPartyToMsg(parties[i]) + "\n\n";
-    }
-    else
-    {
-        msg = "만들어진 파티가 없어요 ㅠ_ㅠ";
-    }
-
-    return msg;
-}
-
 function IsValidGameType(partyName)
 {
     for (var i = 0; i < GameTypes.length; i++)
@@ -408,15 +467,6 @@ function IsValidGameType(partyName)
     }
 
     return false;
-}
-
-function ModifyPartyTime(party, time)
-{
-    var cur = new Date();
-    if (cur > time)
-        return "미래 시간을 입력해주세요.";
-
-    party["time"] = time;
 }
 
 function CheckCustomTimeFormat(customIime)
@@ -432,65 +482,9 @@ function ConvertCustomTimeToDate(time)
     return date;
 }
 
-function CreateParty(name, time)
+function FindRoom(roomName)
 {
-    var found = FindPartyByName(name);
-    if (found)
-        return;
-
-    return {name:name, members:[], time:time};
-}
-
-function JoinParty(party, userName)
-{
-    var partyName = party["name"];
-    for (var i = 0; i < GameTypes.length; i++)
-    {
-        var typeName = GameTypes[i][0];
-        var typeLimitation = GameTypes[i][1];
-        if (partyName.includes(typeName) && party["members"].length >= typeLimitation)
-            return "인원이 꽉 찼어요!";
-    }
-    
-    if (party["members"].indexOf(userName) >= 0)
-        return "이미 참가 중이에요!";
-
-    party["members"].push(userName);
-}
-
-function LeaveParty(party, userName)
-{
-    var idx = party["members"].indexOf(userName);
-    if (idx < 0)
-        return "[" + party["name"] + "]에 " + GetNameFromKakaoName(userName) + "는 참가 중이지 않아요.";
-
-    party["members"].splice(idx, 1);
-}
-
-function KickParty(party, number)
-{
-    if (number > party["members"].length)
-        return "없는 번호에요.";
-
-    party["members"].splice(number - 1, 1);
-}
-
-function ClearEndedParty()
-{
-    var current = new Date();
-    for (var i = parties.length - 1; i >= 0; i--)
-    {
-        var party = parties[i];
-        if (current > party["time"])
-            parties.splice(i, 1);
-    }
-}
-
-function FindPartyByName(name)
-{
-    return parties.find(function(elem) {
-        return elem["name"] == name;
-    });
+    return this.rooms[roomName];
 }
 
 function ConvertPartyToMsg(party)
@@ -514,6 +508,11 @@ function ConvertDateToStr(date)
         msg += date.getMinutes() + "분";
 
     return msg;
+}
+
+function Sleep(time)
+{
+    java.lang.Thread.sleep(time);
 }
 
 function onStartCompile(){

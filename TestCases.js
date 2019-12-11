@@ -9,14 +9,23 @@ if (!this["DataBase"])
 
     function Replier() {}
     Replier.prototype.reply = function(msg) { print(msg); };
+
+    function Sleep() {}
 }
 
-response("room", "/사용법", "sender1", false, new Replier(), null, null, null);
-response("room", "/파티생성 자랭1 2100", "sender1", false, new Replier(), null, null, null);
-response("room", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
-response("room", "/파티탈퇴 자랭1", "sender1", false, new Replier(), null, null, null);
-response("room", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
-response("room", "/파티참가 자랭1", "sender2", false, new Replier(), null, null, null);
-response("room", "/파티강퇴 자랭1 1", "sender2", false, new Replier(), null, null, null);
-response("room", "/파티시간변경 자랭1 2200", "sender2", false, new Replier(), null, null, null);
-response("room", "/파티리스트", "sender2", false, new Replier(), null, null, null);
+response("room1", "/사용법", "sender1", false, new Replier(), null, null, null);
+response("room1", "/파티생성 자랭1 2100", "sender1", false, new Replier(), null, null, null);
+response("room1", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room1", "/파티탈퇴 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room1", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room1", "/파티참가 자랭1", "sender2", false, new Replier(), null, null, null);
+response("room1", "/파티강퇴 자랭1 1", "sender2", false, new Replier(), null, null, null);
+response("room1", "/파티시간변경 자랭1 2200", "sender2", false, new Replier(), null, null, null);
+response("room1", "/파티리스트", "sender2", false, new Replier(), null, null, null);
+response("room1", "알람 테스트", "sender2", false, new Replier(), null, null, null);
+
+response("room2", "/파티리스트", "sender2", false, new Replier(), null, null, null);
+response("room2", "/파티생성 자랭1 2100", "sender1", false, new Replier(), null, null, null);
+response("room2", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
+response("room2", "/파티리스트", "sender2", false, new Replier(), null, null, null);
+response("room2", "알람 테스트", "sender2", false, new Replier(), null, null, null);
