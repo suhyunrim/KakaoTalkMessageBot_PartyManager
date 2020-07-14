@@ -233,6 +233,9 @@ JoinPartyCommand.prototype.isRequireSender = true;
 JoinPartyCommand.prototype.Execute = function()
 {
     var partyName = this.partyName;
+    if (!partyName)
+        return "파티 이름을 입력해주세요!";
+
     var party = this.targetRoom.FindPartyByName(partyName);
     if (!party)
         return "[" + partyName + "]는 존재하지 않아요!";
@@ -365,10 +368,10 @@ var CommandList =
 {
     "/사용법" : HelpCommand,
     "/파티리스트" : PartyListCommand,
-    "/파티생성 파티이름 시간" : CreatePartyCommand,
+    "/파티생성 파티이름 시간(0000~2399)" : CreatePartyCommand,
     "/파티참가 파티이름" : JoinPartyCommand,
     "/파티탈퇴 파티이름" : WithdrawPartyCommand,
-    "/파티시간변경 파티이름 시간" : ModifyPartyTimeCommand,
+    "/파티시간변경 파티이름 시간(0000~2399)" : ModifyPartyTimeCommand,
     "/파티강퇴 파티이름 파티원번호" : KickMemberCommand,
 }
 
@@ -376,6 +379,8 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
     if (isInitialized == false)
         Initialize();
 
+    let responseMsg = "";
+    let commandUsage = '';
     try
     {
         var split = msg.split(' ');
@@ -397,12 +402,14 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         var commandStr = split[0];
         split.splice(0, 1);
 
-        var commandClass;
+        let commandClass;
         for (var key in CommandList)
         {
             var command = CommandList[key];
             if (key.includes(commandStr))
             {
+                commandUsage = key;
+
                 var constructorWithArguments = ApplyAndNew(command, split);
                 commandClass = new constructorWithArguments();
                 commandClass.SetTargetRoom(room);
@@ -415,12 +422,18 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         if (!commandClass)
             return;
 
-        var responseMsg = "";
         var commandMsg = commandClass.Execute();
         if (!commandClass.isSucceed)
+        {
             responseMsg += "Error! ";
-
-        responseMsg += commandMsg;
+            responseMsg += commandMsg;
+            responseMsg += "\n사용법: ";
+            responseMsg += commandUsage;
+        }
+        else
+        {
+            responseMsg += commandMsg;
+        }
 
         if (responseMsg.length > 0)
             replier.reply(responseMsg);
@@ -429,7 +442,16 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
     }
     catch (error)
     {
-        replier.reply("Unknown Error - " + error);
+        if (commandUsage !== '')
+        {
+            responseMsg = "잘못된 사용입니다!\n사용법: " + commandUsage;
+            responseMsg += "\nUnknown Error - " + error;
+        }
+        else
+        {
+            responseMsg = "Unknown Error - " + error;
+        }
+        replier.reply(responseMsg);
     }
 }
 

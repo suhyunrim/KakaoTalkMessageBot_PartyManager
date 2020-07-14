@@ -29,3 +29,5 @@ response("room2", "/파티생성 자랭1 2100", "sender1", false, new Replier(),
 response("room2", "/파티참가 자랭1", "sender1", false, new Replier(), null, null, null);
 response("room2", "/파티리스트", "sender2", false, new Replier(), null, null, null);
 response("room2", "알람 테스트", "sender2", false, new Replier(), null, null, null);
+response("room2", "/파티참가", "sender2", false, new Replier(), null, null, null);
+response("room2", "/파티생성 자랭2", "sender2", false, new Replier(), null, null, null);
