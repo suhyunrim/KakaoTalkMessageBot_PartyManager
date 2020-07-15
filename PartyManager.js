@@ -8,10 +8,11 @@ const scriptName="PartyManager.js";
 const KakaoNameSplitCharacters = ['/', ' '];
 
 // GameTypes에 있는 것들만 파티 생성 가능. 숫자는 전체 인원.
-const GameTypes = [["일반", 5], ["칼바람", 5], ["자랭", 5], ["내전", 10], ["스크림", 5]];
+const GameTypes = [["일반", 5], ["내전", 10], ["스크림", 5], ["칼바람", 5], ["자랭", 5]];
 
 // 매일 AlarmTime에 들어있는 값의 정시에 알람. (파티가 있을 경우)
-const AlarmTime = [16, 19];
+const TodayPartyAlarmTime = [16, 19];
+const PartyPreAlaramMinute = 10;
 
 var isInitialized = false;
 var rooms = [];
@@ -50,10 +51,12 @@ function ApplyAndNew(constructor, args)
 }
 
 // Room Class
-function Room()
+function Room(replier)
 {
     this.parties = [];
     this.noticedDay = 0;
+    this.reservedMessages = [];
+    this.replier = replier;
 }
 
 Room.prototype.FindPartyByName = function(name)
@@ -95,7 +98,42 @@ Room.prototype.ClearEndedParty = function()
     }
 }
 
-Room.prototype.RegisterNotice = function(replier)
+Room.prototype.ReserveMessage = function(targetDate, messageFunc)
+{
+    this.reservedMessages.push({targetDate: targetDate, messageFunc: messageFunc});
+}
+
+Room.prototype.RegisterReservedMessages = function()
+{
+    for (let i = 0; i < this.reservedMessages.length; ++i)
+    {
+        const reserved = this.reservedMessages[i];
+        if (reserved.registered)
+            continue;
+
+        var now = new Date();
+        var diffTime = reserved.targetDate - now;
+        if (diffTime < 0)
+            return;
+
+        this.reservedMessages[i].registered = true;
+        Sleep(diffTime);
+
+        const message = reserved.messageFunc();
+        if (message.length > 0)
+            this.replier.reply(message);
+
+        break;
+    }
+
+    for (let i = this.reservedMessages.length - 1; i >= 0; i--)
+    {
+        if (this.reservedMessages[i].registered)
+            this.reservedMessages.splice(i, 1);
+    }
+}
+
+Room.prototype.RegisterTodayPartyNotice = function()
 {
     if (this.parties.length == 0)
         return;
@@ -106,31 +144,22 @@ Room.prototype.RegisterNotice = function(replier)
 
     this.noticedDay = date.getDate();
 
-    var targetDate = new Date();
-    targetDate.setMinutes(0);
-    AlarmTime.forEach(elem => {
+    TodayPartyAlarmTime.forEach(elem => {
+        var targetDate = new Date();
         targetDate.setHours(elem);
-        this.NoticePartyList(targetDate, replier);
+        this.ReserveMessage(targetDate, () =>
+            {
+                this.ClearEndedParty();
+        
+                if (this.parties.length == 0)
+                    return;
+            
+                var noticeMsg = "☆★ 오늘의 파티 ★☆\n";
+                noticeMsg += this.GetPartyListMsg();
+                return noticeMsg;
+            }
+        );
     });
-}
-
-Room.prototype.NoticePartyList = function(targetDate, replier)
-{
-    var now = new Date();
-    var diffTime = targetDate - now;
-    if (diffTime < 0)
-        return;
-
-    Sleep(diffTime);
-
-    this.ClearEndedParty();
-
-    if (this.parties.length == 0)
-        return;
-
-    var noticeMsg = "☆★ 오늘의 파티 ★☆\n";
-    noticeMsg += this.GetPartyListMsg();
-    replier.reply(noticeMsg);
 }
 
 // CommandBase Class
@@ -214,6 +243,31 @@ CreatePartyCommand.prototype.Execute = function()
     party = {name:partyName, members:[], time:time};
 
     this.targetRoom.AddParty(party);
+
+    const alarmDate = new Date();
+    alarmDate.setHours(time.getHours());
+    alarmDate.setMinutes(time.getMinutes() - PartyPreAlaramMinute);
+
+    this.targetRoom.ReserveMessage(alarmDate, () =>
+        {
+            for (var i = 0; i < GameTypes.length; i++)
+            {
+                var typeName = GameTypes[i][0];
+                var typeLimitation = GameTypes[i][1];
+                if (!partyName.includes(typeName))
+                    continue;
+
+                let msg = ConvertPartyToMsg(party);
+                msg += "\n\n";
+                if (party["members"].length >= typeLimitation)
+                    msg += "파티가 곧 시작됩니다! 준비해주세요~";
+                else
+                    msg += "자리가 남는 파티가 있습니다. 참가해보시면 어떨까요? (/파티참가 " + this.partyName + ")";
+                return msg;
+            }
+        }
+    );
+
     this.isSucceed = true;
 
     return ConvertDateToStr(party["time"]) + "에 [" + partyName +"]가 생성되었어요~";
@@ -387,13 +441,14 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         var room = FindRoom(roomName);
         if (!room)
         {
-            room = new Room();
+            room = new Room(replier);
             rooms[roomName] = room;
         }
 
         if (split[0].startsWith('/') == false)
         {
-            room.RegisterNotice(replier);
+            room.RegisterReservedMessages();
+            room.RegisterTodayPartyNotice();
             return;
         }
 
