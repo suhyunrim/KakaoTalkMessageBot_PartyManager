@@ -14,19 +14,25 @@ if (!this['DataBase'])
 }
 
 response('room1', '/사용법', 'sender1', false, new Replier(), null, null, null);
-response('room1', '/파티생성 자랭1 2100', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티생성 자랭1 2359', 'sender1', false, new Replier(), null, null, null);
 response('room1', '/파티참가 자랭1', 'sender1', false, new Replier(), null, null, null);
 response('room1', '/파티탈퇴 자랭1', 'sender1', false, new Replier(), null, null, null);
-response('room1', '/파티참가 자랭1', 'sender1', false, new Replier(), null, null, null);
-response('room1', '/파티참가 자랭1', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티참여 자랭1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티참 자랭1', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티강퇴 자랭1 1', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티시간변경 자랭1 2200', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room1', '알람 테스트', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티생성 내전1 2359', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티참가 내전1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/카밀출력 내전1', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/정기파티생성 내전1 2100', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/정기파티삭제 내전1', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티대타 내전1 1', 'sender2', false, new Replier(), null, null, null);
 
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '/파티생성 자랭1 2100', 'sender1', false, new Replier(), null, null, null);
-response('room2', '/파티참가 자랭1', 'sender1', false, new Replier(), null, null, null);
+response('room2', '/파티참석 자랭1', 'sender1', false, new Replier(), null, null, null);
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '알람 테스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '/파티참가', 'sender2', false, new Replier(), null, null, null);
