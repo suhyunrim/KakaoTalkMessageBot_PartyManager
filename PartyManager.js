@@ -553,7 +553,7 @@ UnregisterPeriodicPartyCommand.prototype.Execute = function()
     if (index < 0)
         return '[' + partyName + ']는 등록되지 않은 정기 파티입니다!';
 
-    this.targetRoom.periodicParty.slice(index, 1);
+    this.targetRoom.periodicParty.splice(index, 1);
 
     this.isSucceed = true;
     return '정기 파티 [' + partyName + ']가 삭제 되었습니다.';

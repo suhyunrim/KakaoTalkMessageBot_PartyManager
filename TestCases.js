@@ -28,6 +28,7 @@ response('room1', '/파티참가 내전1', 'sender1', false, new Replier(), null
 response('room1', '/카밀출력 내전1', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/정기파티생성 내전1 2100', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/정기파티삭제 내전1', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/정기파티생성 내전1 2100', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티대타 내전1 1', 'sender2', false, new Replier(), null, null, null);
 
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
