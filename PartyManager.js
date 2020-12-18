@@ -8,7 +8,15 @@ const scriptName='PartyManager.js';
 const KakaoNameSplitCharacters = ['/', ' '];
 
 // GameTypes에 있는 것들만 파티 생성 가능. 숫자는 전체 인원.
-const GameTypes = [['일반', 5], ['내전', 10], ['스크림', 5], ['칼바람', 5], ['자랭', 5]];
+const GameTypes = [
+    ['일반', 5],
+    ['내전', 10],
+    ['스크림', 5],
+    ['칼바람', 5],
+    ['자랭', 5],
+    ['솔랭', 2],
+    ['듀오', 2],
+];
 
 // 매일 AlarmTime에 들어있는 값의 정시에 알람. (파티가 있을 경우)
 const TodayPartyAlarmTime = [16, 19];
