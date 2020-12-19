@@ -69,17 +69,18 @@ function Room(roomName)
     this.lastTodayPartyNoticedTime = new Date();
     this.today = this.lastTodayPartyNoticedTime.getDay();
     this.thread = new Thread(new Runnable({
-        run:function() {
+        run:() => {
             while (true) {
-                Thread.sleep(10000);
+                Thread.sleep(3000);
 
                 this.ClearEndedParty();
                 this.CheckPeriodicParty();
-                this.CheckPartyTime();
+                this.CheckPreAlarmNotice();
                 this.CheckTodayPartyNotice();
             }
         }
     }));
+    this.thread.start();
 }
 
 Room.prototype.FindPartyByName = function(name)
@@ -158,9 +159,9 @@ Room.prototype.CheckPreAlarmNotice = function()
 
         for (let i = 0; i < GameTypes.length; i++)
         {
-            const typeName = GameTypes[i][0];
-            const typeLimitation = GameTypes[i][1];
-            if (!partyName.includes(typeName))
+            let typeName = GameTypes[i][0];
+            let typeLimitation = GameTypes[i][1];
+            if (!party.name.includes(typeName))
                 continue;
 
             if (party.members.length <= typeLimitation / 2)
@@ -174,7 +175,7 @@ Room.prototype.CheckPreAlarmNotice = function()
             }
             else
             {
-                msg += '자리가 남는 파티가 있어요~ 참가해보시면 어떨까요? (/파티참가 ' + this.partyName + ')';
+                msg += '자리가 남는 파티가 있어요~ 참가해보시면 어떨까요? (/파티참가 ' + party.name+ ')';
             }
             Api.replyRoom(this.roomName, msg);
         }
@@ -191,9 +192,9 @@ Room.prototype.CheckTodayPartyNotice = function()
         targetDate.setHours(elem);
         targetDate.setMinutes(0);
 
-        if (targetDate > lastTodayPartyNoticedTime && now > targetDate)
+        if (targetDate > this.lastTodayPartyNoticedTime && now > targetDate)
         {
-            lastTodayPartyNoticedTime = now;
+            this.lastTodayPartyNoticedTime = now;
 
             let message;
             if (this.parties.length == 0)
@@ -489,12 +490,15 @@ ReplaceMemberCommand.prototype.Execute = function()
     if (party.members.indexOf(this.sender) >= 0)
         return '이미 참가 중이에요!';
 
+    if (!partyName.includes('내전'))
+        return '파티 대타 기능은 내전에만 사용할 수 있어요.';
+
     const withdrawLimitDate = new Date();
     withdrawLimitDate.setHours(party.time.getHours());
     withdrawLimitDate.setMinutes(party.time.getMinutes() - PartyPreAlaramMinute);
 
     if (withdrawLimitDate >= party.time)
-        return '파티대타는 내전 시작 ' + PartyPreAlaramMinute + '분부터 사용할 수 있는 명령어입니다.';
+        return '파티대타는 내전 시작 ' + PartyPreAlaramMinute + '분 전부터 사용할 수 있는 명령어입니다.';
 
     const replaced = party.members.splice(replaceNumber - 1, 1);
     party.members.push(this.sender);
