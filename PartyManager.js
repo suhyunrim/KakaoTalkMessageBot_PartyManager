@@ -593,7 +593,7 @@ const CommandList =
     '/파티탈퇴 파티이름' : WithdrawPartyCommand,
     '/파티시간변경 파티이름 시간(0000~2359)' : ModifyPartyTimeCommand,
     '/파티강퇴 파티이름 파티원번호' : KickMemberCommand,
-    '/파티대타 파티이름' : ReplaceMemberCommand,
+    '/파티대타 파티이름 파티원번호' : ReplaceMemberCommand,
     '/정기파티생성 파티이름 시간(0000~2359)' : RegisterPeriodicPartyCommand,
     '/정기파티삭제 파티이름' : UnregisterPeriodicPartyCommand,
     '/카밀출력 파티이름' : PrintCamilleCommand,
