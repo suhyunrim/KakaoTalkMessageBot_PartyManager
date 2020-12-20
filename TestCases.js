@@ -45,6 +45,7 @@ response('room1', '/파티리스트', 'sender2', false, new Replier(), null, nul
 response('room1', '알람 테스트', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티생성 내전1 ' + customTime, 'sender1', false, new Replier(), null, null, null);
 response('room1', '/파티참가 내전1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티탈퇴 내전1', 'sender1', false, new Replier(), null, null, null);
 response('room1', '/카밀출력 내전1', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/정기파티생성 정기내전 ' + customTime, 'sender2', false, new Replier(), null, null, null);
 response('room1', '/정기파티삭제 정기내전', 'sender2', false, new Replier(), null, null, null);

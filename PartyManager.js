@@ -378,8 +378,8 @@ WithdrawPartyCommand.prototype.Execute = function()
     if (party.name.includes('내전'))
     {
         const withdrawLimitDate = new Date();
-        withdrawLimitDate.setHours(partyTime.getHours());
-        withdrawLimitDate.setMinutes(partyTime.getMinutes() - PartyPreAlaramMinute);
+        withdrawLimitDate.setHours(party.time.getHours());
+        withdrawLimitDate.setMinutes(party.time.getMinutes() - PartyPreAlaramMinute);
 
         const now = new Date();
         if (now > withdrawLimitDate)
