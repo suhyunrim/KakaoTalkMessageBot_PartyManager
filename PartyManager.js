@@ -4,6 +4,8 @@ const scriptName='PartyManager.js';
 const Runnable = java.lang.Runnable;
 const Thread  = java.lang.Thread;
 
+const DBPrefix = 'partymanager/'
+
 // KakaoNameSplitCharacters의 문자로 split 함.
 // ex1. ZeroBoom/28/성남 -> ZeroBoom으로 파싱
 // ex2. ZeroBoom 28 성남 -> ZeroBoom으로 파싱
@@ -24,28 +26,40 @@ const GameTypes = [
 const TodayPartyAlarmTime = [16, 19];
 const PartyPreAlaramMinute = 30;
 
-var isInitialized = false;
 var rooms = [];
 
 // js JSON에서 serialize 후 deserialize 과정에서 date는 string으로 취급되어 제대로 파싱되지 않아서 넣은 코드.
-if (this.JSON && !this.JSON.dateParser)
+if (this.JSON)
 {
-    var reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
-    var reMsAjax = /^\/Date\((d|-|.*)\)[\/|\\]$/;
-   
-    JSON.dateParser = function (key, value) {
-        if (typeof value === 'string') {
-            var a = reISO.exec(value);
-            if (a)
-                return new Date(value);
-            a = reMsAjax.exec(value);
-            if (a) {
-                var b = a[1].split(/[-+,.]/);
-                return new Date(b[0] ? +b[0] : 0 - +b[1]);
+    if (!this.JSON.dateParser)
+    {
+        var reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+        var reMsAjax = /^\/Date\((d|-|.*)\)[\/|\\]$/;
+       
+        JSON.dateParser = function (key, value) {
+            if (typeof value === 'string') {
+                var a = reISO.exec(value);
+                if (a)
+                    return new Date(value);
+                a = reMsAjax.exec(value);
+                if (a) {
+                    var b = a[1].split(/[-+,.]/);
+                    return new Date(b[0] ? +b[0] : 0 - +b[1]);
+                }
             }
+            return value;
+        };
+    }
+    
+    if (!this.JSON.replacer)
+    {
+        this.JSON.replacer = function (key, value) {
+            if (key == 'thread')
+                return '';
+
+            return value;
         }
-        return value;
-    };
+    }
 }
 
 // Class를 범용성 있게 사용하기 위한 함수.
@@ -68,15 +82,25 @@ function Room(roomName)
     this.periodicParty = [];
     this.lastTodayPartyNoticedTime = new Date();
     this.today = this.lastTodayPartyNoticedTime.getDay();
+
+    this.StartThread();
+}
+
+Room.prototype.StartThread = function()
+{
     this.thread = new Thread(new Runnable({
         run:() => {
-            while (true) {
-                Thread.sleep(3000);
+            try {
+                while (true) {
+                    Thread.sleep(3000);
 
-                this.ClearEndedParty();
-                this.CheckPeriodicParty();
-                this.CheckPreAlarmNotice();
-                this.CheckTodayPartyNotice();
+                    this.ClearEndedParty();
+                    this.CheckPeriodicParty();
+                    this.CheckPreAlarmNotice();
+                    this.CheckTodayPartyNotice();
+                }
+            } catch (e) {
+                Log.i('thread ended');
             }
         }
     }));
@@ -377,8 +401,7 @@ WithdrawPartyCommand.prototype.Execute = function()
 
     if (party.name.includes('내전'))
     {
-        const withdrawLimitDate = new Date();
-        withdrawLimitDate.setHours(party.time.getHours());
+        const withdrawLimitDate = new Date(party.time.getTime());
         withdrawLimitDate.setMinutes(party.time.getMinutes() - PartyPreAlaramMinute);
 
         const now = new Date();
@@ -600,9 +623,6 @@ const CommandList =
 }
 
 function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
-    if (isInitialized == false)
-        Initialize();
-
     let responseMsg = '';
     let commandUsage = '';
     try
@@ -611,7 +631,17 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         var room = FindRoom(roomName);
         if (!room)
         {
-            room = new Room(roomName);
+            var roomsRaw = DataBase.getDataBase(DBPrefix + roomName);
+            if (roomsRaw && roomsRaw != '')
+            {
+                room = JSON.parse(roomsRaw, JSON.dateParser);
+                room.__proto__ = Room.prototype;
+                room.StartThread();
+            }
+            else
+            {
+                room = new Room(roomName);
+            }
             rooms[roomName] = room;
         }
 
@@ -660,7 +690,7 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         if (responseMsg.length > 0)
             replier.reply(responseMsg);
 
-        DataBase.setDataBase('rooms', JSON.stringify(rooms));
+        DataBase.setDataBase(DBPrefix + room.roomName, JSON.stringify(room, JSON.replacer));
     }
     catch (error)
     {
@@ -675,17 +705,6 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
         }
         replier.reply(responseMsg);
     }
-}
-
-function Initialize()
-{
-    var roomsRaw = DataBase.getDataBase('rooms');
-    if (roomsRaw && roomsRaw != '')
-    {
-        rooms = JSON.parse(roomsRaw, JSON.dateParser);
-    }
-
-    isInitialized = true;
 }
 
 function GetNameFromKakaoName(kakaoName)
@@ -772,7 +791,7 @@ function Sleep(time)
 function onStartCompile(){
     /*컴파일 또는 Api.reload호출시, 컴파일 되기 이전에 호출되는 함수입니다.
      *제안하는 용도: 리로드시 자동 백업*/
-    
+    rooms.forEach(room => room.thread.interrupt());
 }
 
 //아래 4개의 메소드는 액티비티 화면을 수정할때 사용됩니다.

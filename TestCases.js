@@ -17,6 +17,9 @@ if (!this['DataBase'])
 
     var Api = {}
     Api.replyRoom = function(roomName, msg) { print('roomName: ' + roomName + '  msg: ' + msg) };
+
+    var Log = {}
+    Log.i = function(msg) { print(msg) };
 }
 
 function ConvertDateToCustomTime(date)
