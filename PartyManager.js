@@ -14,6 +14,7 @@ const KakaoNameSplitCharacters = ['/', ' '];
 // GameTypes에 있는 것들만 파티 생성 가능. 숫자는 전체 인원.
 const GameTypes = [
     ['일반', 5],
+    ['롤체', 8],
     ['내전', 10],
     ['스크림', 5],
     ['칼바람', 5],
