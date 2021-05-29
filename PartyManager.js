@@ -605,7 +605,11 @@ PrintCamilleCommand.prototype.Execute = function()
         return '[' + partyName + ']는 존재하지 않아요!';
 
     this.isSucceed = true;
-    return ConvertPartyToCamilleCommand(party);
+    var msg = ConvertPartyToCamilleCommand(party);
+    msg += '\n ※닉네임 뒤에 @1, @2를 붙이면 팀을 미리 나눌 수 있습니다.';
+    msg += '\n Ex. /자동매칭 ZeroBoom@1,버스타는고먐미@2,캇셀프라임,잠탱이다, ...';
+    msg += '\n 가능하면 서폿이랑 정글은 미리 나누고 하시면 밸런스 맞추는데 도움이 됩니다!';
+    return msg;
 }
 
 const CommandList =
