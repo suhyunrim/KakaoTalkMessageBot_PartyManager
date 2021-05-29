@@ -59,6 +59,11 @@ response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new R
 response('room1', '/파티매니저켜기', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new Replier(), null, null, null);
 response('room1', '/파티홍보 자랭1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티이름변경 자랭1 내전1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티이름변경 자랭1 이름바뀐자랭1', 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티참 이름바뀐자랭1', 'sender3', false, new Replier(), null, null, null);
+response('room1', '/파티참 이름바뀐자랭1', 'sender4', false, new Replier(), null, null, null);
+response('room1', '/파티이름변경 이름바뀐자랭1 듀오로바꾸기실패', 'sender1', false, new Replier(), null, null, null);
 
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '/파티생성 자랭1 ' + customTime, 'sender1', false, new Replier(), null, null, null);

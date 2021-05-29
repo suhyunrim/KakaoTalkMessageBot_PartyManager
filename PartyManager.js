@@ -670,6 +670,53 @@ AdvertisePartyCommand.prototype.Execute = function()
     return msg;
 }
 
+// ModifyPartyNameCommand Class
+function ModifyPartyNameCommand(partyName, newPartyName)
+{
+    CommandBase.call(this);
+    this.partyName = partyName;
+    this.newPartyName = newPartyName;
+}
+
+ModifyPartyNameCommand.prototype = Object.create(CommandBase.prototype);
+ModifyPartyNameCommand.prototype.constructor = ModifyPartyNameCommand;
+ModifyPartyNameCommand.prototype.Execute = function()
+{
+    var partyName = this.partyName;
+    var newPartyName = this.newPartyName;
+    var party = this.targetRoom.FindPartyByName(partyName);
+    if (!party)
+        return '[' + partyName + ']는 존재하지 않아요!';
+
+    var isAlreadyExistParty = this.targetRoom.FindPartyByName(newPartyName);
+    if (isAlreadyExistParty)
+        return '[' + newPartyName + ']는 이미 존재합니다!';
+
+    if (!IsValidGameType(partyName))
+    {
+        msg = '파티 이름은 ';
+        GameTypes.forEach(elem => {
+            msg += elem[0];
+            msg += ', ';
+        });
+        msg.substring(0, msg.length - 2);
+        msg += '가 포함된 이름으로만 변경 할 수 있어요!';
+        return msg;
+    }
+
+    for (var i = 0; i < GameTypes.length; i++)
+    {
+        var typeName = GameTypes[i][0];
+        var typeLimitation = GameTypes[i][1];
+        if (newPartyName.includes(typeName) && party.members.length >= typeLimitation)
+            return '현재 파티 인원수가 변경하려는 이름 타입의 인원을 초과합니다!\nEx. 내전(8명 있음) 파티를 자랭(5명 제한)으로 이름 변경 불가능.';
+    }
+
+    this.isSucceed = true;
+    party.name = newPartyName;
+    return '[' + partyName + ']가 [' + newPartyName + ']로 이름이 변경되었습니다!';
+}
+
 const CommandList =
 {
     '/사용법' : HelpCommand,
@@ -686,6 +733,7 @@ const CommandList =
     '/파티매니저켜기' : ActivatePartyManagerCommand,
     '/파티매니저끄기' : DeactivatePartyManagerCommand,
     '/파티홍보 파티이름' : AdvertisePartyCommand,
+    '/파티이름변경 파티이름 새파티이름' : ModifyPartyNameCommand,
 }
 
 function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
