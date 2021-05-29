@@ -58,6 +58,7 @@ response('room1', '/파티매니저끄기', 'sender2', false, new Replier(), nul
 response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new Replier(), null, null, null);
 response('room1', '/파티매니저켜기', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티홍보 자랭1', 'sender1', false, new Replier(), null, null, null);
 
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '/파티생성 자랭1 ' + customTime, 'sender1', false, new Replier(), null, null, null);

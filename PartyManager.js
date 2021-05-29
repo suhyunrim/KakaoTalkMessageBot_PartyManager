@@ -638,12 +638,36 @@ function DeactivatePartyManagerCommand()
 }
 
 DeactivatePartyManagerCommand.prototype = Object.create(CommandBase.prototype);
-DeactivatePartyManagerCommand.prototype.constructor = ActivatePartyManagerCommand;
+DeactivatePartyManagerCommand.prototype.constructor = DeactivatePartyManagerCommand;
 DeactivatePartyManagerCommand.prototype.Execute = function()
 {
     this.isSucceed = true;
     this.targetRoom.isActivated = false;
     return '※ 파티매니저 기능이 꺼졌습니다!';
+}
+
+// AdvertisePartyCommand Class
+function AdvertisePartyCommand(partyName)
+{
+    CommandBase.call(this);
+    this.partyName = partyName;
+}
+
+AdvertisePartyCommand.prototype = Object.create(CommandBase.prototype);
+AdvertisePartyCommand.prototype.constructor = AdvertisePartyCommand;
+AdvertisePartyCommand.prototype.Execute = function()
+{
+    var partyName = this.partyName;
+    var party = this.targetRoom.FindPartyByName(partyName);
+    if (!party)
+        return '[' + partyName + ']는 존재하지 않아요!';
+
+    this.isSucceed = true;
+
+    let msg = ConvertPartyToMsg(party);
+    msg += '\n\n';
+    msg += '자리가 남는 파티가 있어요~ 참가해보시면 어떨까요? (/파티참가 ' + party.name+ ')';
+    return msg;
 }
 
 const CommandList =
@@ -661,6 +685,7 @@ const CommandList =
     '/카밀출력 파티이름' : PrintCamilleCommand,
     '/파티매니저켜기' : ActivatePartyManagerCommand,
     '/파티매니저끄기' : DeactivatePartyManagerCommand,
+    '/파티홍보 파티이름' : AdvertisePartyCommand,
 }
 
 function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
