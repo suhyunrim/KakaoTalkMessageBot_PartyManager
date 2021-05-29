@@ -54,6 +54,10 @@ response('room1', '/정기파티생성 정기내전 ' + customTime, 'sender2', f
 response('room1', '/정기파티삭제 정기내전', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/정기파티생성 정기내전 ' + customTime, 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티대타 내전1 1', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티매니저끄기', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new Replier(), null, null, null);
+response('room1', '/파티매니저켜기', 'sender2', false, new Replier(), null, null, null);
+response('room1', '/파티생성 내전2 ' + customTime, 'sender1', false, new Replier(), null, null, null);
 
 response('room2', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room2', '/파티생성 자랭1 ' + customTime, 'sender1', false, new Replier(), null, null, null);

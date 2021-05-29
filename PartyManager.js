@@ -83,6 +83,7 @@ function Room(roomName)
     this.periodicParty = [];
     this.lastTodayPartyNoticedTime = new Date();
     this.today = this.lastTodayPartyNoticedTime.getDay();
+    this.isActivated = true;
 
     this.StartThread();
 }
@@ -94,6 +95,9 @@ Room.prototype.StartThread = function()
             try {
                 while (true) {
                     Thread.sleep(3000);
+
+                    if (!this.isActivated)
+                        continue;
 
                     this.ClearEndedParty();
                     this.CheckPeriodicParty();
@@ -241,7 +245,7 @@ Room.prototype.CheckTodayPartyNotice = function()
 function CommandBase()
 {
     this.isSucceed = false;
-    this.targetRoom = '';
+    this.targetRoom = null;
 }
 
 CommandBase.prototype.isRequireSender = true;
@@ -612,6 +616,36 @@ PrintCamilleCommand.prototype.Execute = function()
     return msg;
 }
 
+// ActivatePartyManagerCommand Class
+function ActivatePartyManagerCommand()
+{
+    CommandBase.call(this);
+}
+
+ActivatePartyManagerCommand.prototype = Object.create(CommandBase.prototype);
+ActivatePartyManagerCommand.prototype.constructor = ActivatePartyManagerCommand;
+ActivatePartyManagerCommand.prototype.Execute = function()
+{
+    this.isSucceed = true;
+    this.targetRoom.isActivated = true;
+    return '※ 파티매니저 기능이 켜졌습니다!';
+}
+
+// DeactivatePartyManagerCommand Class
+function DeactivatePartyManagerCommand()
+{
+    CommandBase.call(this);
+}
+
+DeactivatePartyManagerCommand.prototype = Object.create(CommandBase.prototype);
+DeactivatePartyManagerCommand.prototype.constructor = ActivatePartyManagerCommand;
+DeactivatePartyManagerCommand.prototype.Execute = function()
+{
+    this.isSucceed = true;
+    this.targetRoom.isActivated = false;
+    return '※ 파티매니저 기능이 꺼졌습니다!';
+}
+
 const CommandList =
 {
     '/사용법' : HelpCommand,
@@ -625,6 +659,8 @@ const CommandList =
     '/정기파티생성 파티이름 시간(0000~2359)' : RegisterPeriodicPartyCommand,
     '/정기파티삭제 파티이름' : UnregisterPeriodicPartyCommand,
     '/카밀출력 파티이름' : PrintCamilleCommand,
+    '/파티매니저켜기' : ActivatePartyManagerCommand,
+    '/파티매니저끄기' : DeactivatePartyManagerCommand,
 }
 
 function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
@@ -665,6 +701,9 @@ function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageN
             let keyCommand = key.split(' ')[0];
             if (commandStr.startsWith(keyCommand) || keyCommand.startsWith(commandStr))
             {
+                if (!room.isActivated && key != '/파티매니저켜기')
+                    continue;
+
                 commandUsage = key;
 
                 var constructorWithArguments = ApplyAndNew(command, split);
