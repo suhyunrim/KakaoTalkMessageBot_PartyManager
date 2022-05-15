@@ -21,7 +21,16 @@ const GameTypes = [
     ['자랭', 5],
     ['솔랭', 2],
     ['듀오', 2],
+    ['용병', 5],
 ];
+
+const positionNames = [
+    '탑',
+    '정글',
+    '미드',
+    '원딜',
+    '서폿',
+]
 
 // 매일 AlarmTime에 들어있는 값의 정시에 알람. (파티가 있을 경우)
 const TodayPartyAlarmTime = [16, 19];
@@ -295,16 +304,7 @@ CreatePartyCommand.prototype.Execute = function()
 
     var msg = '';
     if (!IsValidGameType(partyName))
-    {
-        msg = '파티는 ';
-        GameTypes.forEach(elem => {
-            msg += elem[0];
-            msg += ', ';
-        });
-        msg.substring(0, msg.length - 2);
-        msg += '만 생성 할 수 있어요!';
-        return msg;
-    }
+        return GetGameTypesError();
 
     if (!this.customTime)
         return "시간을 입력해주세요.(0000~2359)";
@@ -330,12 +330,69 @@ CreatePartyCommand.prototype.Execute = function()
     return ConvertDateToStr(party.time) + '에 [' + partyName +']가 생성되었어요~';
 }
 
-// JoinPartyCommand Class
-function JoinPartyCommand(partyName)
+//CreateParty Class
+function CreatePositionPartyCommand(partyName, customTime)
 {
     CommandBase.call(this);
 
     this.partyName = partyName;
+    this.customTime = customTime;
+}
+
+CreatePositionPartyCommand.prototype = Object.create(CommandBase.prototype);
+CreatePositionPartyCommand.prototype.constructor = CreatePositionPartyCommand;
+CreatePositionPartyCommand.prototype.Execute = function()
+{
+    var partyName = this.partyName;
+
+    var msg = '';
+    if (!IsValidGameType(partyName))
+        return GetGameTypesError();
+
+    if (!this.customTime)
+        return "시간을 입력해주세요.(0000~2359)";
+
+    var cur = new Date();
+    var isValidTime = CheckCustomTimeFormat(this.customTime);
+    if (!isValidTime)
+        return '시간 양식을 확인해주세요.';
+
+    var time = ConvertCustomTimeToDate(this.customTime);
+    if (cur > time)
+        return '미래 시간을 입력해주세요.';
+
+    var party = this.targetRoom.FindPartyByName(partyName);
+    if (party)
+        return '[' + partyName + ']는 이미 존재하는 파티에요!';
+
+    party = {
+        name:partyName,
+        members:[],
+        time:time,
+        isPositionParty:true,
+        positions:{
+            '탑':[],
+            '정글':[],
+            '미드':[],
+            '원딜':[],
+            '서폿':[],
+            '아무데나':[],
+        },
+    };
+
+    this.targetRoom.AddParty(party);
+    this.isSucceed = true;
+
+    return ConvertDateToStr(party.time) + '에 [' + partyName +']가 생성되었어요~';
+}
+
+// JoinPartyCommand Class
+function JoinPartyCommand(partyName, positionName)
+{
+    CommandBase.call(this);
+
+    this.partyName = partyName;
+    this.positionName = positionName
 }
 
 JoinPartyCommand.prototype = Object.create(CommandBase.prototype);
@@ -351,6 +408,10 @@ JoinPartyCommand.prototype.Execute = function()
     if (!party)
         return '[' + partyName + ']는 존재하지 않아요!';
 
+    var hasPositionParam = this.positionName != null;
+    if (!party.isPositionParty && hasPositionParam)
+        return '이 파티는 포지션 파티가 아니에요!'
+
     for (var i = 0; i < GameTypes.length; i++)
     {
         var typeName = GameTypes[i][0];
@@ -362,10 +423,32 @@ JoinPartyCommand.prototype.Execute = function()
     if (party.members.indexOf(this.sender) >= 0)
         return '이미 참가 중이에요!';
 
+    if (party.isPositionParty && hasPositionParam)
+    {
+        if (positionNames.indexOf(this.positionName) == -1)
+            return '잘못된 포지션이에요!';
+        else if (party.positions[this.positionName].length > 0)
+            return '이미 ' + party.positions[this.positionName] + '님이 ' + this.positionName + '에 참가 중이에요!';
+    }
+
     party.members.push(this.sender);
 
-    this.isSucceed = true;
-    return ConvertPartyToMsg(party) + '\n\n' + GetNameFromKakaoName(this.sender) + '님이 [' + partyName + ']에 참가하였습니다!';
+    this.isSucceed = true;  
+
+    var result = ConvertPartyToMsg(party) + '\n\n' + GetNameFromKakaoName(this.sender) + '님이 [' + partyName + ']에 ';
+    if (party.isPositionParty && !hasPositionParam)
+    {
+        party.positions['아무데나'].push(this.sender);
+        result += '[아무데나]로 ';
+    }
+    else if (hasPositionParam)
+    {
+        party.positions[this.positionName].push(this.sender);
+        result += '[' + this.positionName + ']로 ';
+    }
+
+    result += '참가하였습니다!';
+    return result;
 }
 
 // PartyListCommand Class
@@ -708,7 +791,7 @@ ModifyPartyNameCommand.prototype.Execute = function()
     {
         var typeName = GameTypes[i][0];
         var typeLimitation = GameTypes[i][1];
-        if (newPartyName.includes(typeName) && party.members.length >= typeLimitation)
+        if (newPartyName.includes(typeName) && party.members.length > typeLimitation)
             return '현재 파티 인원수가 변경하려는 이름 타입의 인원을 초과합니다!\nEx. 내전(8명 있음) 파티를 자랭(5명 제한)으로 이름 변경 불가능.';
     }
 
@@ -722,6 +805,7 @@ const CommandList =
     '/사용법' : HelpCommand,
     '/파티리스트' : PartyListCommand,
     '/파티생성 파티이름 시간(0000~2359)' : CreatePartyCommand,
+    '/포지션파티생성 파티이름 시간(0000~2359)' : CreatePositionPartyCommand,
     '/파티참 파티이름' : JoinPartyCommand,
     '/파티탈퇴 파티이름' : WithdrawPartyCommand,
     '/파티시간변경 파티이름 시간(0000~2359)' : ModifyPartyTimeCommand,
@@ -871,11 +955,33 @@ function ConvertPartyToMsg(party)
 {
     var time = party.time;
     var msg = party.name + ' - ' + ConvertDateToStr(time);
-    var members = party.members;
-    for (var i = 0; i < members.length; i++)
+    if (party.isPositionParty)
     {
-        var memberName = members[i];
-        msg += '\n' + (i + 1) + '. ' + GetNameFromKakaoName(memberName);
+        var positions = party.positions;
+        for (var positionName in positions)
+        {
+            msg += '\n' + positionName + ': ';
+
+            var members = positions[positionName];
+            if (members.length == 0)
+                continue;
+            
+            for (var i = 0; i < members.length; ++i)
+            {
+                msg += GetNameFromKakaoName(members[i]);
+                if (i < members.length - 1)
+                    msg += ', ';
+            }
+        }
+    }
+    else
+    {
+        var members = party.members;
+        for (var i = 0; i < members.length; i++)
+        {
+            var memberName = members[i];
+            msg += '\n' + (i + 1) + '. ' + GetNameFromKakaoName(memberName);
+        }
     }
     return msg;
 }
@@ -897,6 +1003,19 @@ function ConvertDateToStr(date)
     if (date.getMinutes() > 0)
         msg += date.getMinutes() + '분';
 
+    return msg;
+}
+
+function GetGameTypesError()
+{
+    var msg = '파티는 ';
+    for (var i = 0; i < GameTypes.length; ++i)
+    {
+        msg += GameTypes[i][0];
+        if (i < GameTypes.length - 1)
+            msg += ', ';
+    }
+    msg += '만 생성 할 수 있어요!';
     return msg;
 }
 
