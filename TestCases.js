@@ -73,6 +73,7 @@ response('room1', '/파티참가 포지션자랭', '아무거나1', false, new R
 response('room1', '/파티참가 포지션자랭', '아무거나2', false, new Replier(), null, null, null);
 response('room1', '/파티참가 포지션자랭', '아무거나3', false, new Replier(), null, null, null);
 response('room1', '/파티참가 포지션자랭', '아무거나4', false, new Replier(), null, null, null);
+response('room1', '/파티탈퇴 포지션자랭', '정글러1', false, new Replier(), null, null, null);
 response('room1', '/파티리스트', 'sender2', false, new Replier(), null, null, null);
 response('room1', '/파티생성 아몰랑 2200' + customTime, 'sender1', false, new Replier(), null, null, null);
 

@@ -432,10 +432,8 @@ JoinPartyCommand.prototype.Execute = function()
     }
 
     party.members.push(this.sender);
-
     this.isSucceed = true;  
 
-    var result = ConvertPartyToMsg(party) + '\n\n' + GetNameFromKakaoName(this.sender) + '님이 [' + partyName + ']에 ';
     if (party.isPositionParty && !hasPositionParam)
     {
         party.positions['아무데나'].push(this.sender);
@@ -446,6 +444,10 @@ JoinPartyCommand.prototype.Execute = function()
         party.positions[this.positionName].push(this.sender);
         result += '[' + this.positionName + ']로 ';
     }
+
+    var result = ConvertPartyToMsg(party) + '\n\n' + GetNameFromKakaoName(this.sender) + '님이 [' + partyName + ']에 ';
+    if (party.isPositionParty)
+        result += '[' + (hasPositionParam ? this.positionName : '아무데나') + ']로 ';
 
     result += '참가하였습니다!';
     return result;
@@ -500,6 +502,19 @@ WithdrawPartyCommand.prototype.Execute = function()
     }
 
     party.members.splice(idx, 1);
+
+    if (party.isPositionParty)
+    {
+        for (var key in party.positions)
+        {
+            var members = party.positions[key];
+            var index = members.indexOf(this.sender);
+            if (index == -1)
+                continue;
+
+            members.splice(index, 1);
+        }
+    }
 
     this.isSucceed = true;
     return ConvertPartyToMsg(party) + '\n\n' + GetNameFromKakaoName(this.sender) + '님이 [' + partyName + ']를 떠나셨어요.';
