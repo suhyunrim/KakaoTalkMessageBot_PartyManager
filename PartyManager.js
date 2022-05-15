@@ -820,7 +820,13 @@ const CommandList =
     '/파티이름변경 파티이름 새파티이름' : ModifyPartyNameCommand,
 }
 
-function response(roomName, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId){
+function response(params){
+    const roomName = params.roomName;
+    const msg = params.msg;
+    const sender = params.sender;
+    const isGroupChat = params.isGroupChat;
+    const replier = params.replier;
+
     let responseMsg = '';
     let commandUsage = '';
     try
